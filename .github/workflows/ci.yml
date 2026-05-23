@@ -1,0 +1,23 @@
+name: Sprint_9
+
+on:
+  push:
+    branches:
+      - develop  # <-- ВАЖНО: нужен дефис перед именем ветки
+
+jobs:
+  run-selenoid-tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4  # Лучше использовать v4
+
+      - name: Pull Selenoid images
+        run: |
+          docker pull aerokube/selenoid:latest-release
+          docker pull selenoid/chrome:128.0
+          docker pull aerokube/selenoid-ui:latest-release
+
+      - name: Run tests in Docker Compose
+        run: docker compose up --build --abort-on-container-exit --exit-code-from foodgram_tests

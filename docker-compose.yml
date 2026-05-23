@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  # Сервис Selenoid — управляет запуском браузеров
+  selenoid:
+    image: aerokube/selenoid:latest-release
+    platform: linux/amd64  # Критично для совместимости образов
+    container_name: selenoid
+    ports:
+      - "4444:4444"
+    environment:
+      - LOG_OUTPUT=stdout
+      - LOG_LEVEL=debug
+      - DOCKER_API_VERSION=1.40  # Принудительная версия API
+    volumes:
+      - "./selenoid:/etc/selenoid:ro"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "./video:/opt/selenoid/video"
+      - "./logs:/opt/selenoid/logs"
+    command:
+      - "-conf"
+      - "/etc/selenoid/browsers.json"
+      - "-container-network"
+      - "foodgram_default"  # Имя сети по умолчанию в docker-compose
+      - "-video-output-dir"
+      - "/opt/selenoid/video"
+      - "-log-output-dir"
+      - "/opt/selenoid/logs"
+      - "-limit"
+      - "5"
+    restart: always
+    networks:
+      - foodgram_net
+
+  # UI для мониторинга сессий (опционально)
+  selenoid-ui:
+    image: aerokube/selenoid-ui:latest-release
+    platform: linux/amd64
+    container_name: selenoid-ui
+    ports:
+      - "8080:8080"
+    depends_on:
+      - selenoid
+    environment:
+      - SELENOID_HOST=selenoid
+      - SELENOID_PORT=4444
+    command: ["--selenoid-uri", "http://selenoid:4444"]
+    restart: unless-stopped
+    networks:
+      - foodgram_net
+
+  # Сервис с тестами
+  foodgram_tests:
+    build: .
+    container_name: foodgram_tests
+    platform: linux/amd64
+    depends_on:
+      selenoid:
+        condition: service_started
+    environment:
+      # Переменные окружения как fallback для conftest.py
+      - SELENOID_URI=http://selenoid:4444/wd/hub
+      - BROWSER=chrome
+      - USE_REMOTE=true
+    volumes:
+      - ./assets:/app/assets:ro
+      - ./allure-results:/app/allure-results
+      - ./screenshots:/app/screenshots
+    # Используем entrypoint + command как список для надёжной передачи аргументов
+    entrypoint: ["/usr/local/bin/python3.11", "-m", "pytest"]
+    command:
+      - "tests/"
+      - "--remote"
+      - "--selenoid-uri=http://selenoid:4444/wd/hub"
+      - "--alluredir=allure-results"
+      - "-v"
+      - "--tb=short"
+      - "--color=yes"
+    networks:
+      - foodgram_net
+
+# Единая сеть для всех сервисов
+networks:
+  foodgram_net:
+    driver: bridge
+    name: foodgram_default  # Явно задаём имя сети для совместимости с -container-network
