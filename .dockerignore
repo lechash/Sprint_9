@@ -1,0 +1,47 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+*.egg-info/
+.eggs/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Environments
+.env
+.venv
+venv/
+env/
+
+# Allure & Reports
+allure-results/
+allure-report/
+
+# Screenshots
+screenshots/
+
+# Test artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker config (не копируем сами конфиги в образ)
+docker-compose.yml
+.dockerignore
+
+# Видео и логи селеноида (генерируются на хосте)
+video/
+logs/
